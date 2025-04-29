@@ -16,6 +16,7 @@ from chromadb.api.segment import SegmentAPI
 from chromadb.api.types import Embeddable
 from langchain_core.documents import Document
 from langchain_core.embeddings.fake import FakeEmbeddings as Fak
+from pydantic import validate_call
 
 from langchain_chroma.vectorstores import Chroma
 from tests.integration_tests.fake_embeddings import (
@@ -240,6 +241,79 @@ def test_chroma_search_filter() -> None:
     assert output2 == [
         Document(page_content="bar", metadata={"first_letter": "b"}, id="id_1")
     ]
+
+
+@pytest.mark.xfail(reason="Types do not allow non-trivial filter", strict=True)
+def test_chroma_search_non_trivial_filter() -> None:
+    """Test end to end construction and search with non-trivial metadata filtering."""
+    texts = ["far", "bar", "baz"]
+    metadatas = [{"first_letter": f"{text[0]}"} for text in texts]
+    ids = [f"id_{i}" for i in range(len(texts))]
+    docsearch = Chroma.from_texts(
+        collection_name="test_collection",
+        texts=texts,
+        embedding=FakeEmbeddings(),
+        metadatas=metadatas,
+        ids=ids,
+    )
+    
+    # Wrap the function with a pydantic type-validator
+    similarity_search_with_strict_type = validate_call(docsearch.similarity_search)
+    
+    try:
+        output1 = docsearch.similarity_search("far", k=2, filter={
+            "first_letter": {"$eq": "f"}, # type: ignore
+        })
+        assert output1 == [
+            Document(page_content="far", metadata={"first_letter": "f"}, id="id_0"),
+        ]
+
+        output2 = similarity_search_with_strict_type("far", k=2, filter={
+            "first_letter": {"$eq": "f"}, # type: ignore
+        })
+        assert output2 == [
+            Document(page_content="far", metadata={"first_letter": "f"}, id="id_0"),
+        ]
+    finally:
+        docsearch.delete_collection()
+
+
+@pytest.mark.xfail(
+    reason="Types do not allow complex filter with operators",
+    strict=True,
+)
+def test_chroma_search_complex_filter() -> None:
+    """Test end to end construction and search with complex metadata filtering."""
+    texts = ["far", "bar", "baz"]
+    metadatas = [{"first_letter": f"{text[0]}"} for text in texts]
+    ids = [f"id_{i}" for i in range(len(texts))]
+    docsearch = Chroma.from_texts(
+        collection_name="test_collection",
+        texts=texts,
+        embedding=FakeEmbeddings(),
+        metadatas=metadatas,
+        ids=ids,
+    )
+    
+    # Wrap the function with a pydantic type-validator
+    similarity_search_with_strict_type = validate_call(docsearch.similarity_search)
+    
+    try:
+        output1 = docsearch.similarity_search("far", k=2, filter={
+            "$or": [{"first_letter": "f"}, {"first_letter": {"$in": ["f", "b"]}}] # type: ignore
+        })
+        assert output1 == [
+            Document(page_content="far", metadata={"first_letter": "f"}, id="id_0"),
+        ]
+
+        output2 = similarity_search_with_strict_type("far", k=2, filter={
+            "$or": [{"first_letter": "f"}, {"first_letter": {"$in": ["f", "b"]}}] # type: ignore
+        })
+        assert output2 == [
+            Document(page_content="far", metadata={"first_letter": "f"}, id="id_0"),
+        ]
+    finally:
+        docsearch.delete_collection()
 
 
 def test_chroma_search_filter_with_scores() -> None:
