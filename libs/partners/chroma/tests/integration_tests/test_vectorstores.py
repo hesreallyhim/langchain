@@ -256,21 +256,29 @@ def test_chroma_search_non_trivial_filter() -> None:
         metadatas=metadatas,
         ids=ids,
     )
-    
+
     # Wrap the function with a pydantic type-validator
     similarity_search_with_strict_type = validate_call(docsearch.similarity_search)
-    
+
     try:
-        output1 = docsearch.similarity_search("far", k=2, filter={
-            "first_letter": {"$eq": "f"}, # type: ignore
-        })
+        output1 = docsearch.similarity_search(
+            "far",
+            k=2,
+            filter={
+                "first_letter": {"$eq": "f"},  # type: ignore
+            },
+        )
         assert output1 == [
             Document(page_content="far", metadata={"first_letter": "f"}, id="id_0"),
         ]
 
-        output2 = similarity_search_with_strict_type("far", k=2, filter={
-            "first_letter": {"$eq": "f"}, # type: ignore
-        })
+        output2 = similarity_search_with_strict_type(
+            "far",
+            k=2,
+            filter={
+                "first_letter": {"$eq": "f"},  # type: ignore
+            },
+        )
         assert output2 == [
             Document(page_content="far", metadata={"first_letter": "f"}, id="id_0"),
         ]
@@ -294,21 +302,29 @@ def test_chroma_search_complex_filter() -> None:
         metadatas=metadatas,
         ids=ids,
     )
-    
+
     # Wrap the function with a pydantic type-validator
     similarity_search_with_strict_type = validate_call(docsearch.similarity_search)
-    
+
     try:
-        output1 = docsearch.similarity_search("far", k=2, filter={
-            "$or": [{"first_letter": "f"}, {"first_letter": {"$in": ["f", "b"]}}] # type: ignore
-        })
+        output1 = docsearch.similarity_search(
+            "far",
+            k=2,
+            filter={
+                "$or": [{"first_letter": "f"}, {"first_letter": {"$in": ["f", "b"]}}]  # type: ignore
+            },
+        )
         assert output1 == [
             Document(page_content="far", metadata={"first_letter": "f"}, id="id_0"),
         ]
 
-        output2 = similarity_search_with_strict_type("far", k=2, filter={
-            "$or": [{"first_letter": "f"}, {"first_letter": {"$in": ["f", "b"]}}] # type: ignore
-        })
+        output2 = similarity_search_with_strict_type(
+            "far",
+            k=2,
+            filter={
+                "$or": [{"first_letter": "f"}, {"first_letter": {"$in": ["f", "b"]}}]  # type: ignore
+            },
+        )
         assert output2 == [
             Document(page_content="far", metadata={"first_letter": "f"}, id="id_0"),
         ]
